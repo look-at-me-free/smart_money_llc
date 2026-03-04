@@ -10,302 +10,506 @@
 <link href="https://fonts.googleapis.com/css2?family=Reggae+One&family=Rock+Salt&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 
 <style>
-
 :root{
---bg:#07070a;
---ink:rgba(255,255,255,.9);
---muted:rgba(255,255,255,.55);
---panel:rgba(255,255,255,.06);
---stroke:rgba(255,255,255,.14);
---radius:18px;
---shadow:0 20px 60px rgba(0,0,0,.7);
+  --bg:#07070a;
+  --ink:rgba(255,255,255,.9);
+  --muted:rgba(255,255,255,.55);
+  --panel:rgba(255,255,255,.06);
+  --stroke:rgba(255,255,255,.14);
+  --radius:18px;
+  --shadow:0 20px 60px rgba(0,0,0,.7);
 
---railW:min(240px,22vw);
---gap:18px;
+  --railW:min(240px,22vw);
+  --gap:18px;
 }
 
-body{
-margin:0;
-background:var(--bg);
-color:var(--ink);
-font-family:Inter,system-ui;
-}
+body{ margin:0; background:var(--bg); color:var(--ink); font-family:Inter,system-ui; }
 
 .hero{
-text-align:center;
-padding:42px 16px 24px;
-border-bottom:1px solid var(--stroke);
+  text-align:center;
+  padding:42px 16px 18px;
+  border-bottom:1px solid var(--stroke);
 }
 
 .hero-title{
-font-family:"Reggae One";
-font-size:clamp(2.2rem,7vw,5rem);
-margin:0;
+  font-family:"Reggae One";
+  font-size:clamp(2.2rem,7vw,5rem);
+  margin:0;
 }
 
-.hero-sub{
-margin-top:8px;
-color:var(--muted);
-}
+.hero-sub{ margin-top:8px; color:var(--muted); }
 
-.top-ad{
-max-width:1100px;
-margin:20px auto 0;
-}
+.top-ad{ max-width:1100px; margin:18px auto 0; }
 
 .ad-slot{
-border:1px dashed rgba(255,255,255,.25);
-padding:16px;
-text-align:center;
-border-radius:14px;
-background:rgba(255,255,255,.05);
-color:var(--muted);
+  border:1px dashed rgba(255,255,255,.25);
+  padding:16px;
+  text-align:center;
+  border-radius:14px;
+  background:rgba(255,255,255,.05);
+  color:var(--muted);
 }
 
 .layout{
-display:grid;
-grid-template-columns:var(--railW) 1fr var(--railW);
-gap:var(--gap);
-max-width:1500px;
-margin:auto;
-padding:18px;
+  display:grid;
+  grid-template-columns:var(--railW) 1fr var(--railW);
+  gap:var(--gap);
+  max-width:1500px;
+  margin:auto;
+  padding:18px;
 }
 
-.center{
-max-width:1100px;
-margin:auto;
-width:100%;
-}
+.center{ max-width:1100px; margin:auto; width:100%; }
 
-.rail{
-position:sticky;
-top:80px;
-}
+.rail{ position:sticky; top:80px; }
 
 details{
-margin:16px 0;
-border-radius:var(--radius);
-overflow:hidden;
-border:2px solid var(--stroke);
-background:var(--panel);
-box-shadow:var(--shadow);
+  margin:16px 0;
+  border-radius:var(--radius);
+  overflow:hidden;
+  border:2px solid var(--stroke);
+  background:var(--panel);
+  box-shadow:var(--shadow);
 }
 
 summary{
-cursor:pointer;
-padding:14px;
-display:flex;
-justify-content:space-between;
-align-items:center;
+  cursor:pointer;
+  padding:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
 }
 
-.doc{
-font-weight:800;
-letter-spacing:.3px;
-}
+.doc{ font-weight:800; letter-spacing:.3px; }
+.id{ font-size:12px; color:var(--muted); font-family:monospace; margin-top:4px; }
 
-.id{
-font-size:12px;
-color:var(--muted);
-font-family:monospace;
-}
+.content{ background:black; }
 
-.content{
-background:black;
-}
+iframe{ width:100%; height:85vh; border:0; }
 
-iframe{
-width:100%;
-height:85vh;
-border:0;
-}
-
-.between-ad{
-margin:14px 0;
-}
+.between-ad{ margin:14px 0; }
 
 .pill{
-background:rgba(255,255,255,.1);
-padding:6px 10px;
-border-radius:999px;
-font-size:12px;
-text-decoration:none;
-color:white;
+  background:rgba(255,255,255,.1);
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  text-decoration:none;
+  color:white;
+  white-space:nowrap;
 }
 
 .nav{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-padding:12px;
-border-bottom:1px solid var(--stroke);
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:12px;
+  border-bottom:1px solid var(--stroke);
+  justify-content:center;
 }
 
 .nav a{
-text-decoration:none;
-padding:6px 12px;
-background:rgba(255,255,255,.07);
-border-radius:999px;
-color:white;
-font-size:13px;
+  text-decoration:none;
+  padding:6px 12px;
+  background:rgba(255,255,255,.07);
+  border-radius:999px;
+  color:white;
+  font-size:13px;
+}
+
+.toolbar{
+  max-width:1100px;
+  margin:16px auto 0;
+  padding:0 16px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+}
+
+.search{
+  width:min(720px, 100%);
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding:10px 12px;
+  border-radius:999px;
+  border:1px solid var(--stroke);
+  background:rgba(255,255,255,.05);
+}
+
+.search input{
+  width:100%;
+  background:transparent;
+  border:0;
+  outline:0;
+  color:var(--ink);
+  font-size:14px;
+}
+
+.kbd{
+  font-size:12px;
+  color:var(--muted);
+  border:1px solid rgba(255,255,255,.18);
+  padding:3px 8px;
+  border-radius:999px;
+}
+
+.smallbtn{
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.06);
+  color:var(--ink);
+  padding:8px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  font-size:13px;
+}
+
+.smallbtn:hover{ background:rgba(255,255,255,.1); }
+
+.meta{
+  color:var(--muted);
+  font-size:12px;
+  text-align:center;
+  margin:8px 0 0;
 }
 
 @media(max-width:1100px){
-
-.layout{
-grid-template-columns:1fr;
+  .layout{ grid-template-columns:1fr; }
+  .rail{ position:relative; top:auto; }
 }
-
-.rail{
-position:relative;
-}
-
-}
-
 </style>
 </head>
 
 <body>
 
 <header class="hero">
-<h1 class="hero-title">Full Manga Series</h1>
-<p class="hero-sub">Chapter Viewer</p>
+  <h1 class="hero-title">Full Manga Series</h1>
+  <p class="hero-sub">Chapter Viewer</p>
 
-<div class="top-ad">
-<div class="ad-slot">TOP AD SLOT</div>
-</div>
+  <div class="toolbar">
+    <div class="search">
+      <input id="q" type="search" placeholder="Search titles… e.g. dragon ball 12, dbz chapter 200, piccolo…" autocomplete="off" />
+      <span class="kbd">Enter</span>
+    </div>
+    <button class="smallbtn" id="clear">Clear</button>
+  </div>
+  <div class="meta" id="meta"></div>
 
+  <div class="top-ad">
+    <div class="ad-slot">TOP AD SLOT</div>
+  </div>
 </header>
 
 <nav class="nav" id="nav"></nav>
 
 <div class="layout">
-
-<aside class="rail">
-<div class="ad-slot">LEFT AD</div>
-</aside>
-
-<main class="center">
-<div id="container"></div>
-</main>
-
-<aside class="rail">
-<div class="ad-slot">RIGHT AD</div>
-</aside>
-
+  <aside class="rail"><div class="ad-slot">LEFT AD</div></aside>
+  <main class="center"><div id="container"></div></main>
+  <aside class="rail"><div class="ad-slot">RIGHT AD</div></aside>
 </div>
 
 <script>
-
 /* ========= SETTINGS ========= */
 
-const TOTAL_PAGES = 6
-const DATA_PREFIX = "data_"
+// Worker base URL (no trailing slash)
+const API_BASE = "https://drive-title-worker.al-gutierrez-contact.workers.dev";
+
+// Your worker must support:
+/// GET  /list?page=1&per_page=25  -> { total_pages, items:[{id,title}] }
+/// GET  /search?q=dragon&page=1&per_page=200  -> same shape (or at least {items:[]})
+//
+// If you only have one endpoint, you can point BOTH to the same route.
+const LIST_PATH   = "/list";
+const SEARCH_PATH = "/search";
+
+// Page size for normal browsing
+const PER_PAGE = 25;
+
+// Search pulls more items so sorting feels “global”
+const SEARCH_PER_PAGE = 250;
 
 /* ============================ */
 
 function getPage(){
-
-const url = new URL(location)
-const p = parseInt(url.searchParams.get("p")) || 1
-return p
-
+  const url = new URL(location.href);
+  const p = parseInt(url.searchParams.get("p"), 10);
+  return Number.isFinite(p) && p > 0 ? p : 1;
 }
 
-function buildNav(){
-
-const nav = document.getElementById("nav")
-const current = getPage()
-
-for(let i=1;i<=TOTAL_PAGES;i++){
-
-const a = document.createElement("a")
-a.href = "?p="+i
-a.textContent = "Page "+i
-
-if(i===current) a.style.background="rgba(255,255,255,.2)"
-
-nav.appendChild(a)
-
+function getQuery(){
+  const url = new URL(location.href);
+  const q = url.searchParams.get("q");
+  return (q || "").trim();
 }
 
+function setParams(params){
+  const url = new URL(location.href);
+  Object.entries(params).forEach(([k,v]) => {
+    if(v === null || v === undefined || String(v).trim() === ""){
+      url.searchParams.delete(k);
+    }else{
+      url.searchParams.set(k, String(v));
+    }
+  });
+  history.replaceState(null, "", url.toString());
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+
+function buildNav(totalPages){
+  const nav = document.getElementById("nav");
+  nav.innerHTML = "";
+
+  const current = getPage();
+  const q = getQuery();
+
+  // keep nav compact if huge
+  const max = 18;
+  let start = 1, end = totalPages;
+  if(totalPages > max){
+    const half = Math.floor(max/2);
+    start = Math.max(1, current - half);
+    end = Math.min(totalPages, start + max - 1);
+    start = Math.max(1, end - max + 1);
+  }
+
+  for(let i=start;i<=end;i++){
+    const a = document.createElement("a");
+    a.href = q ? `?q=${encodeURIComponent(q)}&p=${i}` : `?p=${i}`;
+    a.textContent = "Page " + i;
+    if(i === current) a.style.background = "rgba(255,255,255,.2)";
+    nav.appendChild(a);
+  }
 }
 
 function makeAd(){
-
-const div=document.createElement("div")
-div.className="between-ad"
-
-div.innerHTML='<div class="ad-slot">AD SLOT</div>'
-
-return div
-
+  const div = document.createElement("div");
+  div.className = "between-ad";
+  div.innerHTML = '<div class="ad-slot">AD SLOT</div>';
+  return div;
 }
 
-function makeCard(id,i){
+// Pull a chapter number out of titles like:
+// "Dragon Ball 12.pdf", "DBZ Chapter 203", "dragonball z chapter 003 - blah"
+// Returns a number or Infinity (so unsortable items sink)
+function extractChapterNumber(title){
+  const t = (title || "").toLowerCase();
 
-const src=`https://drive.google.com/file/d/${id}/preview`
+  // Prefer "chapter 123" patterns
+  let m = t.match(/\bchapter\D{0,6}(\d{1,5})\b/);
+  if(m) return parseInt(m[1], 10);
 
-const d=document.createElement("details")
+  // Then "ch 123"
+  m = t.match(/\bch\D{0,6}(\d{1,5})\b/);
+  if(m) return parseInt(m[1], 10);
 
-d.innerHTML=`
+  // Then any standalone number (common for "Dragon Ball 12.pdf")
+  m = t.match(/\b(\d{1,5})\b/);
+  if(m) return parseInt(m[1], 10);
 
-<summary>
-
-<div>
-
-<div class="doc">Chapter: ${i+1}</div>
-<div class="id">${id}</div>
-
-</div>
-
-<a class="pill" target="_blank" href="${src}">Open</a>
-
-</summary>
-
-<div class="content">
-
-<iframe loading="lazy" src="${src}"></iframe>
-
-</div>
-
-`
-
-return d
-
+  return Infinity;
 }
 
-async function init(){
+// item = { id: "FILE_ID", title: "Dragon Ball 1.pdf" }
+function makeCard(item, indexOnPage, page){
+  const id = item.id;
+  const title = item.title || `Chapter ${((page - 1) * PER_PAGE) + indexOnPage + 1}`;
+  const src = `https://drive.google.com/file/d/${id}/preview`;
 
-buildNav()
-
-const page=getPage()
-
-const res=await fetch(DATA_PREFIX+page)
-
-const txt=await res.text()
-
-const ids=txt.split(/\n/).map(x=>x.trim()).filter(Boolean)
-
-const container=document.getElementById("container")
-
-ids.forEach((id,i)=>{
-
-container.appendChild(makeCard(id,i))
-
-if(i<ids.length-1){
-
-container.appendChild(makeAd())
-
+  const d = document.createElement("details");
+  d.innerHTML = `
+    <summary>
+      <div>
+        <div class="doc">${escapeHtml(title)}</div>
+        <div class="id">${escapeHtml(id)}</div>
+      </div>
+      <a class="pill" target="_blank" rel="noopener" href="${src}">Open</a>
+    </summary>
+    <div class="content">
+      <iframe loading="lazy" src="${src}"></iframe>
+    </div>
+  `;
+  return d;
 }
 
-})
+async function apiGet(path, params){
+  const url = new URL(API_BASE + path);
+  Object.entries(params || {}).forEach(([k,v]) => {
+    if(v !== undefined && v !== null && String(v).trim() !== ""){
+      url.searchParams.set(k, String(v));
+    }
+  });
 
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if(!res.ok){
+    const text = await res.text().catch(()=> "");
+    throw new Error(`API ${res.status}: ${text || res.statusText}`);
+  }
+  return res.json();
 }
 
-init()
+function normalizeItems(items){
+  // accept {items:[{id,title}]} OR [{id,title}] just in case
+  if(Array.isArray(items)) return items;
+  if(items && Array.isArray(items.items)) return items.items;
+  return [];
+}
 
+function filterClientSide(items, q){
+  if(!q) return items;
+  const needle = q.toLowerCase();
+  return items.filter(it => (it.title || "").toLowerCase().includes(needle));
+}
+
+function sortNumerically(items){
+  // stable-ish numeric sort:
+  return [...items].sort((a,b) => {
+    const an = extractChapterNumber(a.title);
+    const bn = extractChapterNumber(b.title);
+    if(an !== bn) return an - bn;
+
+    // tie-breaker: title string
+    const at = (a.title || "").toLowerCase();
+    const bt = (b.title || "").toLowerCase();
+    if(at < bt) return -1;
+    if(at > bt) return 1;
+
+    // final tie: id
+    return String(a.id||"").localeCompare(String(b.id||""));
+  });
+}
+
+function setMeta(text){
+  document.getElementById("meta").textContent = text || "";
+}
+
+async function render(){
+  const container = document.getElementById("container");
+  container.innerHTML = "";
+
+  const page = getPage();
+  const q = getQuery();
+
+  // fill search box from URL
+  const input = document.getElementById("q");
+  if(input.value.trim() !== q) input.value = q;
+
+  try{
+    let data;
+
+    if(q){
+      // Search mode
+      // 1) Try the server-side search endpoint
+      // 2) If your worker doesn’t have it yet, you can temporarily fall back to
+      //    pulling /list and filtering client-side (works, just slower)
+      try{
+        data = await apiGet(SEARCH_PATH, { q, page: 1, per_page: SEARCH_PER_PAGE });
+      }catch(e){
+        // fallback to /list page 1..N is too heavy, so we do only page 1 and filter,
+        // but we also show a helpful error so you know to implement /search later.
+        console.warn("Search endpoint failed, falling back to list+filter:", e);
+        const list = await apiGet(LIST_PATH, { page: 1, per_page: SEARCH_PER_PAGE });
+        data = { items: filterClientSide(normalizeItems(list), q), total_pages: 1 };
+      }
+
+      const itemsRaw = normalizeItems(data);
+      const items = sortNumerically(itemsRaw);
+
+      buildNav(1);
+      setMeta(`Search: "${q}" • ${items.length} result(s) • sorted by extracted chapter number`);
+
+      items.forEach((item, i) => {
+        container.appendChild(makeCard(item, i, 1));
+        if(i < items.length - 1) container.appendChild(makeAd());
+      });
+
+      if(!items.length){
+        const empty = document.createElement("div");
+        empty.className = "ad-slot";
+        empty.textContent = "No matches. Try fewer words or just a number (e.g. 12, 203).";
+        container.appendChild(empty);
+      }
+
+      return;
+    }
+
+    // Browse mode
+    data = await apiGet(LIST_PATH, { page, per_page: PER_PAGE });
+
+    const totalPages = Number.isFinite(data.total_pages) && data.total_pages > 0 ? data.total_pages : 1;
+    buildNav(totalPages);
+
+    let items = normalizeItems(data);
+    items = sortNumerically(items);
+
+    setMeta(`Page ${page}/${totalPages} • ${items.length} item(s) on this page • sorted by extracted chapter number`);
+
+    items.forEach((item, i) => {
+      container.appendChild(makeCard(item, i, page));
+      if(i < items.length - 1) container.appendChild(makeAd());
+    });
+
+    if(!items.length){
+      const empty = document.createElement("div");
+      empty.className = "ad-slot";
+      empty.textContent = "No items returned for this page.";
+      container.appendChild(empty);
+    }
+
+  }catch(err){
+    buildNav(1);
+    setMeta("");
+
+    const box = document.createElement("div");
+    box.className = "ad-slot";
+    box.textContent = "Failed to load from D1 Worker: " + (err?.message || String(err));
+    container.appendChild(box);
+
+    const hint = document.createElement("div");
+    hint.className = "ad-slot";
+    hint.style.marginTop = "12px";
+    hint.textContent = `Expected API: ${API_BASE}${LIST_PATH}?page=1&per_page=${PER_PAGE} (and optional ${API_BASE}${SEARCH_PATH}?q=...)`;
+    container.appendChild(hint);
+  }
+}
+
+function wireSearch(){
+  const input = document.getElementById("q");
+  const clear = document.getElementById("clear");
+
+  input.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){
+      const q = input.value.trim();
+      setParams({ q: q || null, p: 1 });
+      render();
+    }
+  });
+
+  clear.addEventListener("click", () => {
+    input.value = "";
+    setParams({ q: null, p: 1 });
+    render();
+  });
+}
+
+wireSearch();
+render();
 </script>
 
 </body>
 </html>
+
+
+
+
+
