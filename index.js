@@ -20,10 +20,21 @@
     betweenMulti: 5867482
   };
 
+  const LEFT_RAIL_IDS = [
+    "leftRailSlot1","leftRailSlot2","leftRailSlot3","leftRailSlot4","leftRailSlot5","leftRailSlot6",
+    "leftRailSlot7","leftRailSlot8","leftRailSlot9","leftRailSlot10","leftRailSlot11","leftRailSlot12"
+  ];
+
+  const RIGHT_RAIL_IDS = [
+    "rightRailSlot1","rightRailSlot2","rightRailSlot3","rightRailSlot4","rightRailSlot5","rightRailSlot6",
+    "rightRailSlot7","rightRailSlot8","rightRailSlot9","rightRailSlot10","rightRailSlot11","rightRailSlot12"
+  ];
+
   let ARCHIVE_WORKS = [];
   let CURRENT_WORK = null;
   let CURRENT_ENTRY = null;
   let CURRENT_ITEM = null;
+
   let topFlyoutsWired = false;
   let stickyControlsWired = false;
   let searchWired = false;
@@ -179,7 +190,7 @@
   }
 
   function getSubids(manifest) {
-    const fallbackWork = Number(manifest.id) || Number(manifest.parent_work_id) || 1;
+    const fallbackWork = Number(manifest.parent_work_id) || 1;
 
     return {
       work: manifest.subids?.work ?? fallbackWork,
@@ -216,7 +227,9 @@
     for (let i = 1; i <= slotCount; i++) {
       const slot = document.createElement("div");
       slot.className = "slot";
-      slot.appendChild(makeIns(ZONES.betweenMulti, subids.between, subids.work, Number(`${groupNumber}${i}`)));
+      slot.appendChild(
+        makeIns(ZONES.betweenMulti, subids.between, subids.work, Number(`${groupNumber}${i}`))
+      );
       grid.appendChild(slot);
     }
 
@@ -245,26 +258,18 @@
   }
 
   function fillRailStacks(subids) {
-    const leftSlots = [
-      "leftRailSlot1","leftRailSlot2","leftRailSlot3","leftRailSlot4","leftRailSlot5","leftRailSlot6",
-      "leftRailSlot7","leftRailSlot8","leftRailSlot9","leftRailSlot10","leftRailSlot11","leftRailSlot12"
-    ];
-    const rightSlots = [
-      "rightRailSlot1","rightRailSlot2","rightRailSlot3","rightRailSlot4","rightRailSlot5","rightRailSlot6",
-      "rightRailSlot7","rightRailSlot8","rightRailSlot9","rightRailSlot10","rightRailSlot11","rightRailSlot12"
-    ];
-
-    leftSlots.forEach((id, index) => {
+    LEFT_RAIL_IDS.forEach((id, index) => {
       fillSlot(document.getElementById(id), ZONES.leftRail, subids.left, subids.work, index + 1);
     });
 
-    rightSlots.forEach((id, index) => {
+    RIGHT_RAIL_IDS.forEach((id, index) => {
       fillSlot(document.getElementById(id), ZONES.rightRail, subids.right, subids.work, index + 1);
     });
   }
 
   function flattenEntries() {
     const rows = [];
+
     for (const work of ARCHIVE_WORKS) {
       for (const entry of work.entries || []) {
         rows.push({
@@ -272,10 +277,13 @@
           workLabel: work.display || titleCaseSlug(work.slug),
           entrySlug: entry.slug,
           entryLabel: entry.subtitle || titleCaseSlug(entry.slug),
-          searchKey: normalizeKey(`${work.display || work.slug} ${entry.subtitle || entry.slug} ${entry.slug}`)
+          searchKey: normalizeKey(
+            `${work.display || work.slug} ${entry.subtitle || entry.slug} ${entry.slug}`
+          )
         });
       }
     }
+
     return rows;
   }
 
@@ -286,7 +294,7 @@
 
     if (!items.length) {
       results.innerHTML = "";
-      stat.textContent = "No matches yet";
+      stat.textContent = IS_MOBILE_READER ? "Type to search" : "No matches yet";
       return;
     }
 
@@ -311,10 +319,18 @@
 
     const refresh = () => {
       const query = normalizeKey(input.value);
+
       if (!query) {
+        if (IS_MOBILE_READER) {
+          results.innerHTML = "";
+          stat.textContent = "Type to search";
+          return;
+        }
+
         const seeded = all
           .filter(item => item.workSlug === CURRENT_WORK?.slug)
           .slice(0, SEARCH_RESULTS_LIMIT);
+
         renderSearchResults(seeded);
         stat.textContent = seeded.length ? `Showing ${seeded.length} in this work` : "Ready to jump";
         return;
@@ -323,15 +339,23 @@
       const matched = all
         .filter(item => item.searchKey.includes(query))
         .slice(0, SEARCH_RESULTS_LIMIT);
+
       renderSearchResults(matched);
       stat.textContent = matched.length ? `${matched.length} result${matched.length === 1 ? "" : "s"}` : "No matches";
     };
 
     input.addEventListener("input", refresh);
+
     results.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-dir][data-file]");
       if (!btn) return;
+
       input.value = "";
+      if (IS_MOBILE_READER) {
+        results.innerHTML = "";
+        stat.textContent = "Type to search";
+      }
+
       switchEntry(btn.dataset.dir, btn.dataset.file, false);
     });
 
@@ -341,8 +365,15 @@
   function syncSearchSeed() {
     const input = document.getElementById("chapterSearchInput");
     const stat = document.getElementById("chapterSearchStat");
-    if (!input || !stat) return;
+    const results = document.getElementById("chapterSearchResults");
+    if (!input || !stat || !results) return;
     if (input.value.trim()) return;
+
+    if (IS_MOBILE_READER) {
+      results.innerHTML = "";
+      stat.textContent = "Type to search";
+      return;
+    }
 
     const seeded = flattenEntries()
       .filter(item => item.workSlug === CURRENT_WORK?.slug)
@@ -375,15 +406,21 @@
       for (const entry of entries) {
         const label = `${work.display || titleCaseSlug(work.slug)} · ${entry.subtitle || titleCaseSlug(entry.slug)}`;
         const active = isActive && normalizeKey(entry.slug) === normalizeKey(CURRENT_ENTRY?.slug) ? " active" : "";
+
         html += `
           <a href="?dir=${encodeURIComponent(work.slug)}&file=${encodeURIComponent(entry.slug)}" class="topworks-link${active}" data-dir="${escapeHtml(work.slug)}" data-file="${escapeHtml(entry.slug)}">${escapeHtml(label)}</a>
         `;
       }
 
-      html += `</div></div></div>`;
+      html += `
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     nav.innerHTML = html;
+
     nav.onclick = (e) => {
       const a = e.target.closest("a[data-dir][data-file]");
       if (!a) return;
@@ -401,6 +438,7 @@
       if (trigger) {
         const item = trigger.closest(".topworks-item");
         if (!item) return;
+
         e.preventDefault();
         const wasOpen = item.classList.contains("open");
         $$(".topworks-item.open").forEach(x => x.classList.remove("open"));
@@ -417,6 +455,7 @@
   function getEntryContext() {
     const entries = Array.isArray(CURRENT_WORK?.entries) ? CURRENT_WORK.entries : [];
     const currentIndex = entries.findIndex(entry => normalizeKey(entry.slug) === normalizeKey(CURRENT_ENTRY?.slug));
+
     return {
       entries,
       currentIndex,
@@ -478,6 +517,7 @@
   function updateChapterProgress(progress = 0) {
     const clamped = Math.max(0, Math.min(1, progress));
     const percent = Math.round(clamped * 100);
+
     const pageBar = document.getElementById("pageProgressBar");
     const fill = document.getElementById("chapterProgressFill");
     const label = document.getElementById("chapterProgressLabel");
@@ -493,6 +533,7 @@
       bottomGlowTriggered = true;
       bottomBtn.classList.add("pulse");
     }
+
     if (bottomBtn && clamped < BOTTOM_GLOW_PROGRESS) {
       bottomGlowTriggered = false;
       bottomBtn.classList.remove("pulse");
@@ -532,21 +573,14 @@
 
     railRefreshTimer = window.setInterval(() => {
       if (document.hidden || !CURRENT_ITEM) return;
-      const subids = getSubids(CURRENT_ITEM);
-      const leftSlots = [
-        "leftRailSlot1","leftRailSlot2","leftRailSlot3","leftRailSlot4","leftRailSlot5","leftRailSlot6",
-        "leftRailSlot7","leftRailSlot8","leftRailSlot9","leftRailSlot10","leftRailSlot11","leftRailSlot12"
-      ];
-      const rightSlots = [
-        "rightRailSlot1","rightRailSlot2","rightRailSlot3","rightRailSlot4","rightRailSlot5","rightRailSlot6",
-        "rightRailSlot7","rightRailSlot8","rightRailSlot9","rightRailSlot10","rightRailSlot11","rightRailSlot12"
-      ];
 
-      leftSlots.forEach((id, index) => {
+      const subids = getSubids(CURRENT_ITEM);
+
+      LEFT_RAIL_IDS.forEach((id, index) => {
         refillSlot(document.getElementById(id), ZONES.leftRail, subids.left, subids.work, index + 1);
       });
 
-      rightSlots.forEach((id, index) => {
+      RIGHT_RAIL_IDS.forEach((id, index) => {
         refillSlot(document.getElementById(id), ZONES.rightRail, subids.right, subids.work, index + 1);
       });
 
@@ -555,6 +589,7 @@
 
     bannerRefreshTimer = window.setInterval(() => {
       if (document.hidden || !CURRENT_ITEM) return;
+
       const subids = getSubids(CURRENT_ITEM);
       refillSlot(document.getElementById("topBannerSlot"), ZONES.topBanner, subids.top, subids.work, 1);
       serveAds();
@@ -563,6 +598,7 @@
 
   function maybePreloadNextChapter() {
     if (nextPrefetch || !CURRENT_WORK || !CURRENT_ENTRY) return;
+
     const { next } = getEntryContext();
     if (!next) return;
 
@@ -573,11 +609,13 @@
       .then(manifest => {
         const images = buildImageList(manifest).slice(0, 3);
         const base = normalizeBaseUrl(manifest.base_url);
+
         images.forEach(name => {
           const img = new Image();
           img.decoding = "async";
           img.src = `${base}/${name}`;
         });
+
         return manifest;
       })
       .catch(() => null);
@@ -590,8 +628,12 @@
     window.addEventListener("scroll", () => {
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
       const progress = scrollable > 0 ? window.scrollY / scrollable : 0;
+
       updateChapterProgress(progress);
-      if (progress >= READ_PROGRESS_PREFETCH) maybePreloadNextChapter();
+
+      if (progress >= READ_PROGRESS_PREFETCH) {
+        maybePreloadNextChapter();
+      }
     }, { passive: true });
   }
 
@@ -619,7 +661,18 @@
 
     meta.appendChild(row);
     meta.appendChild(note);
+
     return meta;
+  }
+
+  function clearDesktopAdShells() {
+    const topBanner = document.getElementById("topBannerSlot");
+    if (topBanner) topBanner.innerHTML = "";
+
+    [...LEFT_RAIL_IDS, ...RIGHT_RAIL_IDS].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = "";
+    });
   }
 
   async function buildReader() {
@@ -639,7 +692,9 @@
       if (resolved) setQueryState(resolved.work.slug, resolved.entry.slug, true);
     }
 
-    if (!resolved) throw new Error("No works found in library.json");
+    if (!resolved) {
+      throw new Error("No works found in library.json");
+    }
 
     CURRENT_WORK = resolved.work;
     CURRENT_ENTRY = resolved.entry;
@@ -661,6 +716,8 @@
     if (!IS_MOBILE_READER) {
       fillSlot(document.getElementById("topBannerSlot"), ZONES.topBanner, subids.top, subids.work, 1);
       fillRailStacks(subids);
+    } else {
+      clearDesktopAdShells();
     }
 
     reader.innerHTML = "";
@@ -682,6 +739,7 @@
     note.className = "note";
     note.textContent = "At most they simply have to scroll. And that’s easy.";
     reader.appendChild(note);
+
     reader.appendChild(buildTraversal("top"));
 
     const betweenEvery = Number(manifest.ads?.between_every) || 0;
@@ -689,6 +747,7 @@
     const finalBlock = IS_MOBILE_READER ? 0 : Math.max(Number(manifest.ads?.final_block) || 0, BOTTOM_AD_COUNT);
 
     let groupNumber = 0;
+
     for (let i = 0; i < images.length; i++) {
       reader.appendChild(
         imageBlock(
@@ -698,7 +757,10 @@
       );
 
       const pageNumber = i + 1;
-      const shouldInsertBetween = betweenEvery > 0 && pageNumber % betweenEvery === 0 && pageNumber < images.length;
+      const shouldInsertBetween =
+        betweenEvery > 0 &&
+        pageNumber % betweenEvery === 0 &&
+        pageNumber < images.length;
 
       if (shouldInsertBetween) {
         groupNumber += 1;
@@ -730,6 +792,7 @@
 
   async function boot() {
     await loadLibrary();
+
     wireTopFlyouts();
     wireStickyControls();
     wireProgressWatch();
