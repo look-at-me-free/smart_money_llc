@@ -43,6 +43,9 @@
   let nextPrefetch = null;
   let progressWatchWired = false;
   let bottomGlowTriggered = false;
+  let mobileWorksWired = false;
+  let mobileOpenWorkSlug = "";
+  let dialWired = false;
 
   function $(sel, root = document) {
     return root.querySelector(sel);
@@ -71,6 +74,107 @@
       .replace(/\s+/g, " ")
       .trim()
       .replace(/\b\w/g, ch => ch.toUpperCase());
+  }
+
+  function scrollToReaderTop() {
+    const target =
+      document.getElementById("readerTopAnchor") ||
+      document.getElementById("reader") ||
+      document.getElementById("searchBarAnchor");
+
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function scrollToSearchBar() {
+    const target =
+      document.getElementById("searchBarAnchor") ||
+      document.querySelector(".hero");
+
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  function setMobileOpenWork(workSlug) {
+    mobileOpenWorkSlug = normalizeKey(workSlug || "");
+
+    const items = $$(".mobile-work-item");
+    items.forEach(item => {
+      const isOpen = normalizeKey(item.dataset.workSlug) === mobileOpenWorkSlug;
+      item.classList.toggle("open", isOpen);
+      item.classList.toggle("active", isOpen);
+    });
+  }
+
+  function syncDialThumb() {
+    if (!IS_MOBILE_READER) return;
+
+    const scrollEl = document.getElementById("worksNav");
+    const track = document.getElementById("dialTrack");
+    const thumb = document.getElementById("dialThumb");
+    if (!scrollEl || !track || !thumb) return;
+
+    const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+    const trackH = track.clientHeight;
+    const thumbH = thumb.offsetHeight;
+    const maxTop = Math.max(0, trackH - thumbH);
+
+    const ratio = maxScroll > 0 ? scrollEl.scrollTop / maxScroll : 0;
+    thumb.style.top = `${maxTop * ratio}px`;
+  }
+
+  function wireMobileDial() {
+    if (!IS_MOBILE_READER || dialWired) return;
+    dialWired = true;
+
+    const scrollEl = document.getElementById("worksNav");
+    const track = document.getElementById("dialTrack");
+    const thumb = document.getElementById("dialThumb");
+    if (!scrollEl || !track || !thumb) return;
+
+    let dragging = false;
+
+    const moveThumb = (clientY) => {
+      const rect = track.getBoundingClientRect();
+      const thumbH = thumb.offsetHeight;
+      const maxTop = Math.max(0, rect.height - thumbH);
+
+      let top = clientY - rect.top - thumbH / 2;
+      top = Math.max(0, Math.min(maxTop, top));
+
+      const ratio = maxTop > 0 ? top / maxTop : 0;
+      const maxScroll = Math.max(0, scrollEl.scrollHeight - scrollEl.clientHeight);
+
+      scrollEl.scrollTop = maxScroll * ratio;
+      thumb.style.top = `${top}px`;
+    };
+
+    track.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      track.setPointerCapture?.(e.pointerId);
+      moveThumb(e.clientY);
+    });
+
+    track.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      moveThumb(e.clientY);
+    });
+
+    track.addEventListener("pointerup", (e) => {
+      dragging = false;
+      track.releasePointerCapture?.(e.pointerId);
+    });
+
+    track.addEventListener("pointercancel", () => {
+      dragging = false;
+    });
+
+    scrollEl.addEventListener("scroll", syncDialThumb, { passive: true });
+    window.addEventListener("resize", syncDialThumb);
+
+    syncDialThumb();
   }
 
   function serveAds() {
@@ -346,17 +450,23 @@
 
     input.addEventListener("input", refresh);
 
-    results.addEventListener("click", (e) => {
+    results.addEventListener("click", async (e) => {
       const btn = e.target.closest("button[data-dir][data-file]");
       if (!btn) return;
 
       input.value = "";
+
       if (IS_MOBILE_READER) {
         results.innerHTML = "";
         stat.textContent = "Type to search";
+        setMobileOpenWork(btn.dataset.dir);
       }
 
-      switchEntry(btn.dataset.dir, btn.dataset.file, false);
+      await switchEntry(btn.dataset.dir, btn.dataset.file, false);
+
+      if (IS_MOBILE_READER) {
+        scrollToReaderTop();
+      }
     });
 
     refresh();
@@ -386,6 +496,52 @@
   function renderWorksNav() {
     const nav = document.getElementById("worksNav");
     if (!nav) return;
+
+    if (IS_MOBILE_READER) {
+      let html = "";
+
+      for (const work of ARCHIVE_WORKS.filter(w => w.top_pill !== false)) {
+        const isActiveWork = normalizeKey(work.slug) === normalizeKey(CURRENT_WORK?.slug);
+        const isOpen = normalizeKey(work.slug) === normalizeKey(mobileOpenWorkSlug || CURRENT_WORK?.slug);
+        const entries = Array.isArray(work.entries) ? work.entries : [];
+
+        html += `
+          <section class="mobile-work-item${isActiveWork ? " active" : ""}${isOpen ? " open" : ""}" data-work-slug="${escapeHtml(work.slug)}">
+            <button class="mobile-work-trigger" type="button" data-work-toggle="${escapeHtml(work.slug)}">
+              <span class="label">${escapeHtml(work.display || titleCaseSlug(work.slug))}</span>
+              <span class="count">${entries.length} ${entries.length === 1 ? "chapter" : "chapters"}</span>
+            </button>
+            <div class="mobile-chapters">
+        `;
+
+        for (const entry of entries) {
+          const active =
+            isActiveWork && normalizeKey(entry.slug) === normalizeKey(CURRENT_ENTRY?.slug)
+              ? " current"
+              : "";
+
+          html += `
+            <button
+              class="mobile-chapter-link${active}"
+              type="button"
+              data-dir="${escapeHtml(work.slug)}"
+              data-file="${escapeHtml(entry.slug)}"
+            >
+              ${escapeHtml(entry.subtitle || titleCaseSlug(entry.slug))}
+            </button>
+          `;
+        }
+
+        html += `
+            </div>
+          </section>
+        `;
+      }
+
+      nav.innerHTML = html;
+      syncDialThumb();
+      return;
+    }
 
     let html = "";
 
@@ -452,6 +608,37 @@
     });
   }
 
+  function wireMobileWorksNav() {
+    if (!IS_MOBILE_READER || mobileWorksWired) return;
+    mobileWorksWired = true;
+
+    const nav = document.getElementById("worksNav");
+    if (!nav) return;
+
+    nav.addEventListener("click", async (e) => {
+      const toggle = e.target.closest("[data-work-toggle]");
+      if (toggle) {
+        const slug = toggle.dataset.workToggle;
+        const normalized = normalizeKey(slug);
+        const isAlreadyOpen = normalized === normalizeKey(mobileOpenWorkSlug);
+
+        setMobileOpenWork(isAlreadyOpen ? "" : slug);
+        syncDialThumb();
+        return;
+      }
+
+      const chapterBtn = e.target.closest("button[data-dir][data-file]");
+      if (!chapterBtn) return;
+
+      const dir = chapterBtn.dataset.dir;
+      const file = chapterBtn.dataset.file;
+
+      setMobileOpenWork(dir);
+      await switchEntry(dir, file, false);
+      scrollToReaderTop();
+    });
+  }
+
   function getEntryContext() {
     const entries = Array.isArray(CURRENT_WORK?.entries) ? CURRENT_WORK.entries : [];
     const currentIndex = entries.findIndex(entry => normalizeKey(entry.slug) === normalizeKey(CURRENT_ENTRY?.slug));
@@ -464,12 +651,17 @@
     };
   }
 
-  function makeTraversalPill(label, onClick, extraClass = "") {
+  function makeTraversalPill(label, onClick, extraClass = "", disabled = false) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = `traversal-pill${extraClass ? ` ${extraClass}` : ""}`;
     btn.textContent = label;
-    btn.addEventListener("click", onClick);
+    btn.disabled = !!disabled;
+
+    if (!disabled && typeof onClick === "function") {
+      btn.addEventListener("click", onClick);
+    }
+
     return btn;
   }
 
@@ -480,10 +672,12 @@
 
     const kicker = document.createElement("p");
     kicker.className = "traversal-kicker";
-    kicker.textContent = position === "top" ? "Chapter Navigation" : "Keep The Scroll Alive";
+    kicker.textContent = IS_MOBILE_READER
+      ? "Quick Chapter Jump"
+      : (position === "top" ? "Chapter Navigation" : "Keep The Scroll Alive");
     shell.appendChild(kicker);
 
-    if (position === "bottom") {
+    if (!IS_MOBILE_READER && position === "bottom") {
       const prompt = document.createElement("div");
       prompt.className = "continue-prompt";
       prompt.textContent = "Finished this chapter? Pick the next move right here.";
@@ -492,7 +686,35 @@
 
     const bar = document.createElement("div");
     bar.className = "traversal-bar";
+
     const { entries, prev, next } = getEntryContext();
+
+    if (IS_MOBILE_READER) {
+      bar.appendChild(
+        makeTraversalPill(
+          "← Previous",
+          prev ? () => switchEntry(CURRENT_WORK.slug, prev.slug, false) : null,
+          "",
+          !prev
+        )
+      );
+
+      bar.appendChild(
+        makeTraversalPill("Search", () => scrollToSearchBar())
+      );
+
+      bar.appendChild(
+        makeTraversalPill(
+          "Next →",
+          next ? () => switchEntry(CURRENT_WORK.slug, next.slug, false) : null,
+          "",
+          !next
+        )
+      );
+
+      shell.appendChild(bar);
+      return shell;
+    }
 
     if (prev) {
       bar.appendChild(makeTraversalPill("← Previous", () => switchEntry(CURRENT_WORK.slug, prev.slug, false)));
@@ -546,17 +768,19 @@
 
     const topBtn = document.getElementById("scrollToSearchBtn");
     const bottomBtn = document.getElementById("scrollToBottomTraversalBtn");
-    if (!topBtn || !bottomBtn) return;
 
-    topBtn.addEventListener("click", () => {
-      const target = document.getElementById("searchBarAnchor") || document.querySelector(".hero");
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    if (topBtn) {
+      topBtn.addEventListener("click", () => {
+        scrollToSearchBar();
+      });
+    }
 
-    bottomBtn.addEventListener("click", () => {
-      const target = document.getElementById("bottomTraversal") || document.getElementById("readerBottomAnchor");
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    if (bottomBtn) {
+      bottomBtn.addEventListener("click", () => {
+        const target = document.getElementById("bottomTraversal") || document.getElementById("readerBottomAnchor");
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   }
 
   function clearRefreshTimers() {
@@ -657,7 +881,9 @@
 
     const note = document.createElement("div");
     note.className = "chapter-note";
-    note.textContent = "Use the search bar for instant jumps, keep the quick controls in view, and roll straight into the next chapter when you hit the end.";
+    note.textContent = IS_MOBILE_READER
+      ? "Use the chapter controls above or below the pages whenever you want to jump fast."
+      : "Use the search bar for instant jumps, keep the quick controls in view, and roll straight into the next chapter when you hit the end.";
 
     meta.appendChild(row);
     meta.appendChild(note);
@@ -699,6 +925,10 @@
     CURRENT_WORK = resolved.work;
     CURRENT_ENTRY = resolved.entry;
 
+    if (IS_MOBILE_READER) {
+      mobileOpenWorkSlug = resolved.work.slug;
+    }
+
     const entryPath = resolved.entry.path || resolved.entry.slug;
     const itemUrl = buildItemJsonPath(resolved.work.slug, entryPath);
     const manifest = await fetchJson(itemUrl);
@@ -737,7 +967,9 @@
 
     const note = document.createElement("div");
     note.className = "note";
-    note.textContent = "At most they simply have to scroll. And that’s easy.";
+    note.textContent = IS_MOBILE_READER
+      ? "Tap through chapters up top, then just sink into the scroll."
+      : "At most they simply have to scroll. And that’s easy.";
     reader.appendChild(note);
 
     reader.appendChild(buildTraversal("top"));
@@ -779,15 +1011,27 @@
     bottomAnchor.className = "reader-anchor";
     reader.appendChild(bottomAnchor);
 
-    serveAds();
+    if (!IS_MOBILE_READER) {
+      serveAds();
+    }
+
     startRefreshTimers();
     updateChapterProgress(0);
+
+    if (IS_MOBILE_READER) {
+      syncDialThumb();
+    }
   }
 
   async function switchEntry(dir, file, replace = false) {
     setQueryState(dir, file, replace);
     await buildReader();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (IS_MOBILE_READER) {
+      scrollToReaderTop();
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   async function boot() {
@@ -797,6 +1041,9 @@
     wireStickyControls();
     wireProgressWatch();
     wireSearch();
+    wireMobileWorksNav();
+    wireMobileDial();
+
     await buildReader();
 
     window.addEventListener("popstate", async () => {
