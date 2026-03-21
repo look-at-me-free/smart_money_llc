@@ -1964,31 +1964,31 @@
     "source":  "d",
     "entries":  [
                     {
-                        "slug":  "chapter_1",
+                        "slug":  "v1_c1",
                         "path":  "volume_1/chapter_1",
                         "type":  "chapter",
                         "subtitle":  "Volume 1 - Chapter 1"
                     },
                     {
-                        "slug":  "chapter_2",
+                        "slug":  "v1_c2",
                         "path":  "volume_1/chapter_2",
                         "type":  "chapter",
                         "subtitle":  "Volume 1 - Chapter 2"
                     },
                     {
-                        "slug":  "chapter_3",
+                        "slug":  "v1_c3",
                         "path":  "volume_1/chapter_3",
                         "type":  "chapter",
                         "subtitle":  "Volume 1 - Chapter 3"
                     },
                     {
-                        "slug":  "chapter_4",
+                        "slug":  "v1_c4",
                         "path":  "volume_1/chapter_4",
                         "type":  "chapter",
                         "subtitle":  "Volume 1 - Chapter 4"
                     },
                     {
-                        "slug":  "chapter_5",
+                        "slug":  "v1_c5",
                         "path":  "volume_1/chapter_5",
                         "type":  "chapter",
                         "subtitle":  "Volume 1 - Chapter 5"
