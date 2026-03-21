@@ -1,0 +1,86 @@
+name: Merge Uploaded Works
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'uploaded_works/*.json'
+
+permissions:
+  contents: write
+
+jobs:
+  merge:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Merge works into catalog
+        shell: pwsh
+        run: |
+          $catalogPath = "catalog.json"
+          $worksFolder = "uploaded_works"
+          $outputPath  = "catalog.json"
+
+          function Read-Json($path) {
+              return (Get-Content $path -Raw) | ConvertFrom-Json -Depth 100
+          }
+
+          function To-Array($obj) {
+              if ($null -eq $obj) { return @() }
+              if ($obj -is [System.Collections.IEnumerable] -and -not ($obj -is [string])) {
+                  return @($obj)
+              }
+              return @($obj)
+          }
+
+          $catalog = Read-Json $catalogPath
+          $worksList = New-Object System.Collections.ArrayList
+          foreach ($w in $catalog.works) { [void]$worksList.Add($w) }
+
+          $files = Get-ChildItem "$worksFolder\*.json"
+
+          foreach ($file in $files) {
+              Write-Host "Processing $($file.Name)"
+              $block = Read-Json $file.FullName
+
+              if ($block.works) {
+                  $newWorks = To-Array $block.works
+              } elseif ($block -is [System.Collections.IEnumerable]) {
+                  $newWorks = To-Array $block
+              } else {
+                  $newWorks = @($block)
+              }
+
+              foreach ($work in $newWorks) {
+                  $exists = $false
+
+                  foreach ($existing in $worksList) {
+                      if ($existing.slug -eq $work.slug) {
+                          $exists = $true
+                          break
+                      }
+                  }
+
+                  if (-not $exists) {
+                      [void]$worksList.Add($work)
+                      Write-Host "Added $($work.slug)"
+                  } else {
+                      Write-Host "Skipped duplicate $($work.slug)"
+                  }
+              }
+          }
+
+          $catalog.works = $worksList
+          $catalog | ConvertTo-Json -Depth 100 | Set-Content $outputPath -Encoding UTF8
+
+      - name: Commit updated catalog
+        shell: pwsh
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add catalog.json
+          git commit -m "Auto merge uploaded works" || echo "No changes"
+          git push
