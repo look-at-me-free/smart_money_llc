@@ -6,26 +6,35 @@
   const ITEM_JSON_NAME = "item.json";
   const BOTTOM_AD_COUNT = 6;
 
-  // More aggressive than the original, but still not absurd.
   const RAIL_REFRESH_MS = 45000;
   const BANNER_REFRESH_MS = 60000;
   const BETWEEN_REFRESH_MS = 50000;
+  const MOBILE_STICKY_REFRESH_MS = 60000;
 
   const READ_PROGRESS_PREFETCH = 0.7;
   const BOTTOM_GLOW_PROGRESS = 0.95;
   const SEARCH_RESULTS_LIMIT = 12;
   const IS_MOBILE_READER = document.body?.dataset?.readerMode === "mobile";
 
-  // Guardrails for ad serving / refreshing.
   const MIN_GLOBAL_SERVE_GAP_MS = 1200;
   const MIN_SLOT_REFRESH_GAP_MS = 30000;
   const VIEWPORT_THRESHOLD = 0.2;
+  const INTERSTITIAL_DELAY_MS = 900;
+  const VIDEO_SLIDER_DELAY_MS = 5000;
 
   const ZONES = {
     topBanner: 5865232,
     leftRail: 5865238,
     rightRail: 5865240,
     betweenMulti: 5867482
+  };
+
+  const SPECIAL_ZONES = {
+    desktopInterstitial: { zoneId: 5880058, className: "eas6a97888e35" },
+    mobileInterstitial: { zoneId: 5880060, className: "eas6a97888e33" },
+    desktopVideoSlider: { zoneId: 5880066, className: "eas6a97888e31" },
+    desktopRecommend: { zoneId: 5880068, className: "eas6a97888e20" },
+    mobileSticky: { zoneId: 5880082, className: "eas6a97888e10" }
   };
 
   const LEFT_RAIL_IDS = [
@@ -50,6 +59,7 @@
   let railRefreshTimer = null;
   let bannerRefreshTimer = null;
   let betweenRefreshTimer = null;
+  let mobileStickyRefreshTimer = null;
   let nextPrefetch = null;
   let progressWatchWired = false;
   let bottomGlowTriggered = false;
@@ -61,6 +71,9 @@
   let lastServeAt = 0;
   let adVisibilityObserver = null;
   let adActionBurstCooldownUntil = 0;
+  let videoSliderLoaded = false;
+  let videoSliderScheduled = false;
+  let mobileStickyLoaded = false;
 
   function $(sel, root = document) {
     return root.querySelector(sel);
@@ -99,6 +112,10 @@
     return Date.now();
   }
 
+  function delay(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+  }
+
   function isElementInViewport(el, threshold = VIEWPORT_THRESHOLD) {
     if (!el || !el.isConnected) return false;
 
@@ -132,10 +149,6 @@
   function markSlotSeen(el) {
     if (!el) return;
     el.dataset.seen = "1";
-  }
-
-  function wasSlotSeen(el) {
-    return !!el && el.dataset.seen === "1";
   }
 
   function resolveSourceKey(work, entry) {
@@ -296,7 +309,6 @@
   function burstServeAds() {
     if (document.hidden) return;
 
-    // Prevent action spam from triggering too many bursts back-to-back.
     if (now() < adActionBurstCooldownUntil) return;
     adActionBurstCooldownUntil = now() + 3500;
 
@@ -304,9 +316,9 @@
     window.setTimeout(() => serveAds(true), 700);
   }
 
-  function makeIns(zoneId, sub = 1, sub2 = 1, sub3 = 1) {
+  function makeIns(zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
     const ins = document.createElement("ins");
-    ins.className = "eas6a97888e38";
+    ins.className = className;
     ins.setAttribute("data-zoneid", String(zoneId));
     ins.setAttribute("data-sub", String(sub));
     ins.setAttribute("data-sub2", String(sub2));
@@ -314,27 +326,67 @@
     return ins;
   }
 
-  function refillSlot(el, zoneId, sub = 1, sub2 = 1, sub3 = 1) {
+  function refillSlot(el, zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
     if (!el) return;
     el.innerHTML = "";
-    el.appendChild(makeIns(zoneId, sub, sub2, sub3));
+    el.appendChild(makeIns(zoneId, sub, sub2, sub3, className));
     stampSlotRefresh(el);
   }
 
-  function fillSlot(el, zoneId, sub = 1, sub2 = 1, sub3 = 1) {
+  function fillSlot(el, zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
     if (!el) return;
-    refillSlot(el, zoneId, sub, sub2, sub3);
+    refillSlot(el, zoneId, sub, sub2, sub3, className);
     serveAds();
   }
 
-  function refillSlotIfVisible(el, zoneId, sub = 1, sub2 = 1, sub3 = 1) {
+  function refillSlotIfVisible(el, zoneId, sub = 1, sub2 = 1, sub3 = 1, className = "eas6a97888e38") {
     if (!el || document.hidden) return false;
     if (!isElementInViewport(el)) return false;
     if (!canRefreshSlot(el)) return false;
 
-    refillSlot(el, zoneId, sub, sub2, sub3);
+    refillSlot(el, zoneId, sub, sub2, sub3, className);
     markSlotSeen(el);
     return true;
+  }
+
+  function mountSpecial(container, cfg) {
+    if (!container || !cfg) return;
+    refillSlot(container, cfg.zoneId, 1, 1, 1, cfg.className);
+    serveAds(true);
+  }
+
+  async function fireChapterInterstitial() {
+    const mount = document.getElementById(IS_MOBILE_READER ? "mobileInterstitialMount" : "desktopInterstitialMount");
+    const cfg = IS_MOBILE_READER ? SPECIAL_ZONES.mobileInterstitial : SPECIAL_ZONES.desktopInterstitial;
+    if (!mount || !cfg) return;
+
+    mountSpecial(mount, cfg);
+    await delay(INTERSTITIAL_DELAY_MS);
+  }
+
+  function scheduleVideoSlider() {
+    if (IS_MOBILE_READER || videoSliderLoaded || videoSliderScheduled) return;
+
+    const mount = document.getElementById("desktopVideoSliderMount");
+    if (!mount) return;
+
+    videoSliderScheduled = true;
+    window.setTimeout(() => {
+      if (videoSliderLoaded) return;
+      mountSpecial(mount, SPECIAL_ZONES.desktopVideoSlider);
+      videoSliderLoaded = true;
+    }, VIDEO_SLIDER_DELAY_MS);
+  }
+
+  function loadMobileStickyBanner(force = false) {
+    if (!IS_MOBILE_READER) return;
+    const mount = document.getElementById("mobileStickyMount");
+    if (!mount) return;
+
+    if (mobileStickyLoaded && !force) return;
+
+    fillSlot(mount, SPECIAL_ZONES.mobileSticky.zoneId, 1, 1, 1, SPECIAL_ZONES.mobileSticky.className);
+    mobileStickyLoaded = true;
   }
 
   function setupAdVisibilityObserver() {
@@ -507,6 +559,25 @@
     }
 
     return wrap;
+  }
+
+  function buildRecommendationWidget() {
+    if (IS_MOBILE_READER) return null;
+
+    const shell = document.createElement("section");
+    shell.className = "recommend-shell";
+
+    const title = document.createElement("p");
+    title.className = "recommend-title";
+    title.textContent = "More To Read";
+    shell.appendChild(title);
+
+    const slot = document.createElement("div");
+    slot.className = "slot recommend-slot";
+    slot.appendChild(makeIns(SPECIAL_ZONES.desktopRecommend.zoneId, 1, 1, 1, SPECIAL_ZONES.desktopRecommend.className));
+    shell.appendChild(slot);
+
+    return shell;
   }
 
   function fillRailStacks(subids) {
@@ -952,9 +1023,11 @@
     if (railRefreshTimer) clearInterval(railRefreshTimer);
     if (bannerRefreshTimer) clearInterval(bannerRefreshTimer);
     if (betweenRefreshTimer) clearInterval(betweenRefreshTimer);
+    if (mobileStickyRefreshTimer) clearInterval(mobileStickyRefreshTimer);
     railRefreshTimer = null;
     bannerRefreshTimer = null;
     betweenRefreshTimer = null;
+    mobileStickyRefreshTimer = null;
   }
 
   function refreshVisibleRailSlots() {
@@ -1008,22 +1081,38 @@
     return refreshed;
   }
 
+  function refreshMobileSticky() {
+    if (!IS_MOBILE_READER) return false;
+    const mount = document.getElementById("mobileStickyMount");
+    if (!mount || document.hidden) return false;
+    if (!canRefreshSlot(mount)) return false;
+
+    refillSlot(mount, SPECIAL_ZONES.mobileSticky.zoneId, 1, 1, 1, SPECIAL_ZONES.mobileSticky.className);
+    serveAds();
+    return true;
+  }
+
   function startRefreshTimers() {
     clearRefreshTimers();
 
-    if (IS_MOBILE_READER) return;
+    if (!IS_MOBILE_READER) {
+      railRefreshTimer = window.setInterval(() => {
+        refreshVisibleRailSlots();
+      }, RAIL_REFRESH_MS);
 
-    railRefreshTimer = window.setInterval(() => {
-      refreshVisibleRailSlots();
-    }, RAIL_REFRESH_MS);
+      bannerRefreshTimer = window.setInterval(() => {
+        refreshVisibleTopBanner();
+      }, BANNER_REFRESH_MS);
 
-    bannerRefreshTimer = window.setInterval(() => {
-      refreshVisibleTopBanner();
-    }, BANNER_REFRESH_MS);
+      betweenRefreshTimer = window.setInterval(() => {
+        refreshVisibleBetweenSlots();
+      }, BETWEEN_REFRESH_MS);
+      return;
+    }
 
-    betweenRefreshTimer = window.setInterval(() => {
-      refreshVisibleBetweenSlots();
-    }, BETWEEN_REFRESH_MS);
+    mobileStickyRefreshTimer = window.setInterval(() => {
+      refreshMobileSticky();
+    }, MOBILE_STICKY_REFRESH_MS);
   }
 
   function maybePreloadNextChapter() {
@@ -1132,6 +1221,17 @@
     });
   }
 
+  function shouldShowInterstitial(dir, file, options = {}) {
+    if (options.skipInterstitial) return false;
+    const selection = resolveSelection(dir, file);
+    if (!selection) return false;
+
+    const entries = Array.isArray(selection.work?.entries) ? selection.work.entries : [];
+    const targetIndex = entries.findIndex(entry => normalizeKey(entry.slug) === normalizeKey(file));
+
+    return targetIndex > 0;
+  }
+
   async function buildReader() {
     const reader = document.getElementById("reader");
     if (!reader) return;
@@ -1176,8 +1276,10 @@
     if (!IS_MOBILE_READER) {
       fillSlot(document.getElementById("topBannerSlot"), ZONES.topBanner, subids.top, subids.work, 1);
       fillRailStacks(subids);
+      scheduleVideoSlider();
     } else {
       clearDesktopAdShells();
+      loadMobileStickyBanner();
     }
 
     reader.innerHTML = "";
@@ -1236,6 +1338,11 @@
 
     reader.appendChild(buildTraversal("bottom"));
 
+    const recommend = buildRecommendationWidget();
+    if (recommend) {
+      reader.appendChild(recommend);
+    }
+
     const bottomAnchor = document.createElement("span");
     bottomAnchor.id = "readerBottomAnchor";
     bottomAnchor.className = "reader-anchor";
@@ -1246,7 +1353,6 @@
     startRefreshTimers();
     updateChapterProgress(0);
 
-    // Extra serve shortly after build so lazy content / inserted ins blocks get another pass.
     window.setTimeout(() => serveAds(true), 900);
 
     if (IS_MOBILE_READER) {
@@ -1257,16 +1363,18 @@
   async function switchEntry(dir, file, replace = false, options = {}) {
     const { actionSource = "unknown" } = options;
 
+    if (shouldShowInterstitial(dir, file, options)) {
+      await fireChapterInterstitial();
+    }
+
     setQueryState(dir, file, replace);
 
-    // Action-triggered ad burst before rebuild.
     if (actionSource) {
       burstServeAds();
     }
 
     await buildReader();
 
-    // Action-triggered ad burst after rebuild.
     if (actionSource) {
       window.setTimeout(() => burstServeAds(), 600);
     }
@@ -1282,12 +1390,12 @@
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
 
-      // When the tab becomes visible again, re-serve and refresh visible slots.
       serveAds(true);
       window.setTimeout(() => {
         refreshVisibleTopBanner();
         refreshVisibleRailSlots();
         refreshVisibleBetweenSlots();
+        refreshMobileSticky();
       }, 400);
     });
   }
