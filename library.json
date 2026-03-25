@@ -2291,8 +2291,6 @@
         { "slug": "chapter_015", "path": "book_2/chapter_015", "type": "chapter", "subtitle": "Chapter 15" },
         { "slug": "chapter_016", "path": "book_2/chapter_016", "type": "chapter", "subtitle": "Chapter 16" },
         { "slug": "chapter_017", "path": "book_2/chapter_017", "type": "chapter", "subtitle": "Chapter 17" },
-
-  
                     {
                         "slug":  "v3_c18",
                         "path":  "book_03/chapter_18",
