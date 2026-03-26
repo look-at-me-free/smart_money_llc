@@ -7605,10 +7605,8 @@
   "top_pill": true,
   "source": "e",
 
-  "use_map": true,
-  "map_file": "berserk.json",
-
-  "entries": [
+ 
+   "entries": [
                     {
                         "slug":  "v1_p1",
                         "path":  "volume_01/part_1",
