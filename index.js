@@ -432,7 +432,7 @@ window.__STATE = STATE;
   // Ads
   // ------------------------------------------------------------
 
- function rawServeAds() {
+function rawServeAds() {
   try {
     window.AdProvider = window.AdProvider || [];
     window.AdProvider.push({ serve: {} });
@@ -444,14 +444,30 @@ window.__STATE = STATE;
   }
 }
 
-  function burstServeAds() {
-    if (document.hidden) return;
-    if (now() < STATE.adActionBurstCooldownUntil) return;
+function serveAds(force = false) {
+  const elapsed = now() - STATE.lastServeAt;
 
-    STATE.adActionBurstCooldownUntil = now() + 3500;
-    serveAds(true);
-    window.setTimeout(() => serveAds(true), 700);
+  if (force || elapsed >= CONFIG.minGlobalServeGapMs) {
+    rawServeAds();
+    return;
   }
+
+  if (STATE.adServeScheduled) return;
+  STATE.adServeScheduled = true;
+
+  window.setTimeout(() => {
+    rawServeAds();
+  }, Math.max(0, CONFIG.minGlobalServeGapMs - elapsed));
+}
+
+function burstServeAds() {
+  if (document.hidden) return;
+  if (now() < STATE.adActionBurstCooldownUntil) return;
+
+  STATE.adActionBurstCooldownUntil = now() + 3500;
+  serveAds(true);
+  window.setTimeout(() => serveAds(true), 700);
+}
 
   function ensureAdProviderScript(src) {
     if (!src) return Promise.resolve();
