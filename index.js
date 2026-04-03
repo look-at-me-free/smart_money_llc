@@ -432,12 +432,8 @@ window.__STATE = STATE;
   // Ads
   // ------------------------------------------------------------
 
-  function rawServeAds() {
-    (window.AdProvider = window.AdProvider || []).push({ serve: {} });
-    STATE.lastServeAt = now();
-    STATE.adServeScheduled = false;
-  }
- 
+ function rawServeAds() {
+
 
   function serveAds(force = false) {
     const elapsed = now() - STATE.lastServeAt;
